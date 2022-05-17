@@ -7,9 +7,11 @@ import (
 	"effie/messenger"
 	twinPkg "effie/twin"
 	"effie/watchlist"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -20,7 +22,11 @@ var sc = make(chan os.Signal, 1)
 func main() {
 	defer logger.Sync()
 
-	disc := bot.NewBot("effie", "220530610521767936",
+	if os.Getenv("DISCORD_GUILD") == "" {
+		panic(errors.New("DISCORD_GUILD is empty"))
+	}
+
+	disc := bot.NewBot("effie", os.Getenv("DISCORD_GUILD"),
 		CmdOn,
 		CmdOff,
 		CmdAdd,
@@ -37,6 +43,17 @@ func main() {
 		sc <- os.Kill
 	} else {
 		go messenger.Start(disc.Channel(os.Getenv("DISCORD_CHANNEL")))
+	}
+
+	summonerNames := os.Getenv("SUMMONER_LIST")
+	if summonerNames != "" {
+		names := strings.Split(summonerNames, "|")
+		for _, name := range names {
+			log.Warn("addSummoner is compared to string output")
+			if msg := addSummoner(name); msg != "added summoner to tracking" {
+				log.Errorw(msg, "summonerName", name)
+			}
+		}
 	}
 
 	// Wait here until CTRL-C or other term signal is received.

@@ -1,12 +1,9 @@
-package match
+package twin
 
 import (
-	"effie/logger"
 	"github.com/KnutZuidema/golio/riot/lol"
 	"sync"
 )
-
-var log = logger.Get("twin", "match", "state").Sugar()
 
 type GameState uint8
 
@@ -47,7 +44,7 @@ type match struct {
 	__onStopped func(info *lol.GameInfo)
 }
 
-func New(summonerId string) *match {
+func NewState(summonerId string) *match {
 	m := new(match)
 	m.summonerId = summonerId
 	m.state = startState

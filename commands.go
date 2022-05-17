@@ -74,45 +74,45 @@ var CmdAdd = bot.Cmd(
 		}
 		summonerName := options[0].Value
 
-		commandLogger.Debugw("verifying user input", "summonerName", summonerName)
-		summonerInfo, err := riot.GetSummonerByName(summonerName)
-		if err != nil {
-			commandLogger.Error(err)
-			bot.UpdateRespondToCommand(s, i, "something went wrong")
-			return
-		}
-		summonerId := summonerInfo.ID
-		commandLogger.Debugw("retrieved summoner data",
-			"summonerName", summonerName,
-			"summonerId", summonerId,
-			"data", summonerInfo,
-		)
-
-		blocked, err := blocklist.Contains(summonerId)
-		if err != nil {
-			commandLogger.Error(err)
-			bot.UpdateRespondToCommand(s, i, "something went wrong")
-			return
-		}
-		if blocked {
-			commandLogger.Info("user tried to add blocked summoner")
-			bot.UpdateRespondToCommand(s, i, "this user is blocked and can't tracked")
-			return
-		}
-
-		if watchlist.Contains(summonerId) {
-			commandLogger.Warnw("summoner is already on watchlist",
-				"summonerId", summonerInfo)
-			bot.UpdateRespondToCommand(s, i, "summoner is already on watchlist")
-			return
-		}
-
-		ctx, cancel := context.WithCancel(context.Background())
-		go StartTracking(ctx, summonerId)
-
-		watchlist.Set(summonerId, cancel)
-		bot.UpdateRespondToCommand(s, i, "added summoner to tracking")
+		bot.UpdateRespondToCommand(s, i, addSummoner(summonerName))
 	}, bot.Summoner)
+
+func addSummoner(summonerName string) string {
+	commandLogger.Debugw("verifying user input", "summonerName", summonerName)
+	summonerInfo, err := riot.GetSummonerByName(summonerName)
+	if err != nil {
+		commandLogger.Error(err)
+		return "something went wrong"
+	}
+	summonerId := summonerInfo.ID
+	commandLogger.Debugw("retrieved summoner data",
+		"summonerName", summonerName,
+		"summonerId", summonerId,
+		"data", summonerInfo,
+	)
+
+	blocked, err := blocklist.Contains(summonerId)
+	if err != nil {
+		commandLogger.Error(err)
+		return "something went wrong"
+	}
+	if blocked {
+		commandLogger.Info("user tried to add blocked summoner")
+		return "this user is blocked and can't be tracked"
+	}
+
+	if watchlist.Contains(summonerId) {
+		commandLogger.Warnw("summoner is already on watchlist",
+			"summonerId", summonerInfo)
+		return "summoner is already on watchlist"
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go StartTracking(ctx, summonerId)
+
+	watchlist.Set(summonerId, cancel)
+	return "added summoner to tracking"
+}
 
 var CmdRemove = bot.Cmd(
 	"remove",

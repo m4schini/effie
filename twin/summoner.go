@@ -5,7 +5,6 @@ import (
 	"effie/broker"
 	"effie/logger"
 	"effie/riot"
-	"effie/twin/state/match"
 	"github.com/KnutZuidema/golio/riot/lol"
 	"time"
 )
@@ -25,14 +24,14 @@ type SummonerTwin interface {
 
 type summoner struct {
 	id          string
-	inGameState match.GameStateMachine
+	inGameState GameStateMachine
 	IsInGame    bool
 }
 
 func NewSummonerTwin(id string) *summoner {
 	s := new(summoner)
 	s.id = id
-	s.inGameState = match.New(id)
+	s.inGameState = NewState(id)
 
 	s.inGameState.SetOnStarted(s.onGameStarted)
 	s.inGameState.SetOnInGame(s.onGameUpdated)

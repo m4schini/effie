@@ -1,9 +1,9 @@
-package match
+package twin
 
 import "testing"
 
 func TestMatchStateMachine(t *testing.T) {
-	m := New("sum1D")
+	m := NewState("sum1D")
 
 	if m.state != startState {
 		t.Log("machine is in unexpected state")

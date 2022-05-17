@@ -1,5 +1,5 @@
 # Build Stage
-FROM golang:1.18-alpine as build
+FROM golang:1.18 as build
 
 ENV APP_NAME effie
 
@@ -11,12 +11,12 @@ RUN go mod tidy
 RUN go build -v -o /$APP_NAME /src/
 
 # Run Stage
-FROM alpine:latest
+FROM golang:1.18
 
 ENV APP_NAME effie
 
 COPY --from=build /$APP_NAME .
 
-RUN mkdir /config
+RUN touch ./blocked_summoners.txt
 
 ENTRYPOINT ./$APP_NAME

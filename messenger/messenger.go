@@ -49,6 +49,18 @@ func onMatchStart(channel bot.Messenger) func(topic string, message interface{})
 		err := AddGame(msg, level)
 		if err != nil {
 			log.Errorw(err.Error(), "gameId", gameId, "summonerId", msg.SummonerId)
+
+			game, ok := GetGame(msg.Game.GameID)
+			if !ok {
+				return
+			}
+
+			_, err := channel.UpdateMessage(game.DMessage.ID, GetMessageString(gameId))
+			if err != nil {
+				log.Errorw(err.Error(), "gameId", gameId, "summonerId", msg.SummonerId)
+			}
+
+			return
 		}
 		SetState(gameId, Started, msg, nil)
 

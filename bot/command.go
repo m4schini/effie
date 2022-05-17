@@ -61,7 +61,3 @@ func UserId(i *discordgo.Interaction) string {
 		return ""
 	}
 }
-
-func UserName() {
-
-}

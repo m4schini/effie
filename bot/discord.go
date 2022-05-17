@@ -99,13 +99,6 @@ const (
 	OutputLevel            = 4
 )
 
-type commandOption struct {
-	Type     OptionType
-	Name     string
-	Desc     string
-	Required bool
-}
-
 type botCommand struct {
 	Name        string
 	Description string
@@ -135,7 +128,7 @@ func NewBot(botName, guildId string, commands ...*botCommand) *bot {
 	b := new(bot)
 	b.guild = guildId
 
-	log.Info("creating discord bot using token: ", os.Getenv("DISCORD_TOKEN"))
+	log.Infow("initializing discord bot", "tokenSize", len(os.Getenv("DISCORD_TOKEN")))
 	b.session, err = discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
 		log.Fatal(err)
@@ -172,6 +165,7 @@ func NewBot(botName, guildId string, commands ...*botCommand) *bot {
 					"invokedIn", i.ChannelID,
 					"guildId", guildId,
 					"commandName", i.ApplicationCommandData().Name,
+					"subCommandName", subCmdName,
 				)
 			}
 			log.Warnw("tried to handle command without handler",
@@ -179,6 +173,7 @@ func NewBot(botName, guildId string, commands ...*botCommand) *bot {
 				"invokedIn", i.ChannelID,
 				"guildId", guildId,
 				"commandName", i.ApplicationCommandData().Name,
+				"subCommandName", subCmdName,
 			)
 		}
 	})

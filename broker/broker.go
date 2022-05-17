@@ -1,12 +1,11 @@
 package broker
 
 import (
-	"fmt"
-	"go.uber.org/zap"
+	"effie/logger"
 	"sync"
 )
 
-var log = zap.NewNop().Sugar() //logger.Get("broker").Sugar()
+var log = logger.Get("broker").Sugar()
 
 const (
 	chBufferSize = 128
@@ -30,7 +29,7 @@ func init() {
 
 	go func() {
 		for message := range ch {
-			log.Debugf("MSG > [%s] %v", message.topic, message.msg)
+			log.Debugw("handing message to subscribers", "topic", message.topic)
 
 			handlersMutex.Lock()
 			chachedHandlers, exists := handlers[message.topic]
@@ -51,10 +50,7 @@ func Publish(topic string, msg interface{}) error {
 		topic: topic,
 		msg:   msg,
 	}
-	log.Debugw("topic published",
-		"topic", topic,
-		"size", len(fmt.Sprintf("%v", msg)),
-	)
+	log.Debugw("published message to topic", "topic", topic)
 
 	return nil
 }
@@ -71,6 +67,6 @@ func Subscribe(topic string, handler Handler) error {
 	}
 
 	handlers[topic] = append(handlerList, handler)
-	log.Debug("registered new subscribe handler")
+	log.Debug("registered new subscribe handler", "topic", topic)
 	return nil
 }
