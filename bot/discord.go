@@ -253,7 +253,7 @@ func NewBot(botName, guildId string, commands ...*botCommand) *bot {
 		return nil
 	}
 
-	// register commands
+	// register global commands
 	b.commands = make([]*discordgo.ApplicationCommand, 0, len(commands))
 	_, err = b.session.ApplicationCommandCreate(b.session.State.User.ID, "", &discordgo.ApplicationCommand{
 		Name:        strings.ToLower(botName),
