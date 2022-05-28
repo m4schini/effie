@@ -1,63 +1,17 @@
 package riot
 
 import (
-	"effie/logger"
-	"effie/output"
+	"effie3/conf"
+	"effie3/logger"
+	"effie3/util"
 	"errors"
 	"github.com/KnutZuidema/golio"
-	"github.com/KnutZuidema/golio/api"
+	golioApi "github.com/KnutZuidema/golio/api"
 	"github.com/KnutZuidema/golio/riot/lol"
-	"os"
-	"strings"
+	"go.uber.org/zap"
 )
 
-var Api *golio.Client
 var log = logger.Get("riot").Sugar()
-
-// k: summonerName v: summonerId
-var knownSummoners map[string]string
-
-var online bool
-
-const (
-	envNameRiotApiKey    = "RIOT_API_KEY"
-	envNameRiotApiRegion = "RIOT_API_REGION"
-
-	QueueRankedFlex   = "RANKED_FLEX_SR"
-	QueueRankedFlexId = 440
-	QueueRankedSolo   = "RANKED_SOLO_5x5"
-	QueueRankedSoloId = 420
-)
-
-func init() {
-	online = true
-	defer func() {
-		if !online {
-			log.Warnw("riot api is not available!")
-		} else {
-			log.Debugf("%s: %s", "SELECTED REGION", os.Getenv("RIOT_API_REGION"))
-		}
-	}()
-
-	if os.Getenv(envNameRiotApiKey) == "" {
-		online = false
-		log.Warnw(envNameRiotApiKey+" is empty", "value", os.Getenv(envNameRiotApiKey))
-	}
-	if os.Getenv(envNameRiotApiRegion) == "" {
-		online = false
-		log.Warnw(envNameRiotApiRegion+" is empty", "value", os.Getenv(envNameRiotApiRegion))
-	}
-
-	if online {
-		client := golio.NewClient(
-			os.Getenv("RIOT_API_KEY"),
-			golio.WithRegion(api.Region(os.Getenv("RIOT_API_REGION"))),
-		)
-
-		Api = client
-	}
-	knownSummoners = make(map[string]string)
-}
 
 type PromoSeries struct {
 	Queue    string
@@ -69,65 +23,105 @@ type PromoSeries struct {
 	Losses   int
 }
 
-func newPromoSeries(queue, from, to string, info *lol.MiniSeries) *PromoSeries {
-	p := new(PromoSeries)
-	p.Queue = queue
-	p.From = from
-	p.To = to
-	p.Progress = info.Progress
-	p.Target = info.Target
-	p.Wins = info.Wins
-	p.Losses = info.Losses
-	return p
+type Api interface {
+	GetSummonerByName(summonerName string) (*lol.Summoner, error)
+	GetSummonerById(summonerId string) (*lol.Summoner, error)
+	GetCurrentGame(summonerId string) (*lol.GameInfo, error)
+	GetLeagues(summonerId string) ([]*lol.LeagueItem, error)
+	GetPromos(summonerId string) ([]*PromoSeries, error)
+	GetMatch(matchId string, summonerId string) (*lol.Match, *lol.Participant, error)
+	GetGameLevel(summonerId string, info *lol.GameInfo) (conf.VolumeLevel, error)
 }
 
-func GetSummonerByName(summonerName string) (*lol.Summoner, error) {
-	if !online {
-		return nil, errors.New("riot api not available")
-	}
-	s, err := Api.Riot.LoL.Summoner.GetByName(summonerName)
+type api struct {
+	client *golio.Client
+	logger *zap.SugaredLogger
+}
+
+func NewApi(region, apiKey string) (*api, error) {
+	a := new(api)
+
+	log.Debugw("creating new riot api client", "region", region)
+	a.client = golio.NewClient(apiKey, golio.WithRegion(golioApi.Region(region)))
+
+	a.logger = log.Named(region)
+	return a, nil
+}
+
+func (a *api) GetSummonerByName(summonerName string) (*lol.Summoner, error) {
+	s, err := a.client.Riot.LoL.Summoner.GetByName(summonerName)
 	if err != nil {
 		return nil, err
 	}
-	knownSummoners[s.Name] = s.ID
-	return s, err
+
+	a.logger.Debugw("retrieved summoner info", "summonerId", s.ID)
+	return s, nil
 }
 
-func GetSummonerById(summonerId string) (*lol.Summoner, error) {
-	if !online {
-		return nil, errors.New("riot api not available")
-	}
-	s, err := Api.Riot.LoL.Summoner.GetByID(summonerId)
+func (a *api) GetSummonerById(summonerId string) (*lol.Summoner, error) {
+	s, err := a.client.Riot.LoL.Summoner.GetByID(summonerId)
 	if err != nil {
 		return nil, err
 	}
-	knownSummoners[s.Name] = s.ID
-	return s, err
+
+	a.logger.Debugw("retrieved summoner info", "summonerId", s.ID)
+	return s, nil
 }
 
-func IsPlaying(summonerId string) (bool, *lol.GameInfo, error) {
-	if !online {
-		return false, nil, errors.New("riot api not available")
-	}
-
-	gameInfo, err := Api.Riot.LoL.Spectator.GetCurrent(summonerId)
-	if err != nil && err.Error() == "not found" {
-		return false, nil, nil
-	}
+func (a *api) GetCurrentGame(summonerId string) (*lol.GameInfo, error) {
+	s, err := a.client.Riot.LoL.Spectator.GetCurrent(summonerId)
 	if err != nil {
-		log.Error(err)
-		return false, nil, nil
+		return nil, err
 	}
 
-	return true, gameInfo, nil
+	a.logger.Debugw("retrieved current game info", "summonerId", summonerId, "gameId", s.GameID)
+	return s, nil
 }
 
-func getTier(summonerId, queueType string) (*string, *string, error) {
-	if !online {
-		return nil, nil, errors.New("riot api not available")
+func (a *api) GetLeagues(summonerId string) ([]*lol.LeagueItem, error) {
+	s, err := a.client.Riot.LoL.League.ListBySummoner(summonerId)
+	if err != nil {
+		return nil, err
 	}
 
-	leagues, err := Api.Riot.LoL.League.ListBySummoner(summonerId)
+	a.logger.Debugw("retrieved leagues for summoner", "summonerId", summonerId)
+	return s, nil
+}
+
+func (a *api) GetPromos(summonerId string) ([]*PromoSeries, error) {
+	info, err := a.client.Riot.LoL.League.ListBySummoner(summonerId)
+	if err != nil {
+		return nil, err
+	}
+
+	promos := make([]*PromoSeries, 0)
+	for _, item := range info {
+		if item.MiniSeries != nil {
+			from, to, err := a.getTier(summonerId, item.QueueType)
+			if err != nil {
+				*from = ""
+				*to = ""
+			}
+
+			promos = append(promos, &PromoSeries{
+				Queue:    item.QueueType,
+				From:     *from,
+				To:       *to,
+				Progress: item.MiniSeries.Progress,
+				Target:   item.MiniSeries.Target,
+				Wins:     item.MiniSeries.Wins,
+				Losses:   item.MiniSeries.Losses,
+			})
+		}
+	}
+
+	return promos, nil
+}
+
+//TODO avoid/replace
+func (a *api) getTier(summonerId, queueType string) (*string, *string, error) {
+
+	leagues, err := a.client.Riot.LoL.League.ListBySummoner(summonerId)
 	if err != nil {
 		log.Error(err)
 		return nil, nil, err
@@ -136,7 +130,7 @@ func getTier(summonerId, queueType string) (*string, *string, error) {
 	for _, league := range leagues {
 		if league.QueueType == queueType {
 
-			next := NextTier(league.Tier)
+			next := util.NextTier(league.Tier)
 			return &league.Tier, &next, nil
 		}
 	}
@@ -144,63 +138,8 @@ func getTier(summonerId, queueType string) (*string, *string, error) {
 	return nil, nil, errors.New("queueType doesn't exist")
 }
 
-func LeaguesBySummonerName(summonerName string) (map[int]*lol.LeagueItem, error) {
-	if !online {
-		return nil, errors.New("riot api not available")
-	}
-
-	id, ok := knownSummoners[summonerName]
-	if !ok {
-		return nil, errors.New("unknown summoner name")
-	}
-
-	info, err := Api.Riot.LoL.League.ListBySummoner(id)
-	if err != nil {
-		return nil, err
-	}
-
-	leagues := make(map[int]*lol.LeagueItem)
-
-	for _, item := range info {
-		queueId := ToQueueConfigId(item.QueueType)
-		leagues[queueId] = item
-	}
-
-	return leagues, nil
-}
-
-func GetPromos(summonerId string) ([]*PromoSeries, error) {
-	if !online {
-		return nil, errors.New("riot api not available")
-	}
-
-	info, err := Api.Riot.LoL.League.ListBySummoner(summonerId)
-	if err != nil {
-		return nil, err
-	}
-
-	promos := make([]*PromoSeries, 0)
-	for _, item := range info {
-		if item.MiniSeries != nil {
-			from, to, err := getTier(summonerId, item.QueueType)
-			if err != nil {
-				*from = ""
-				*to = ""
-			}
-
-			promos = append(promos, newPromoSeries(item.QueueType, *from, *to, item.MiniSeries))
-		}
-	}
-
-	return promos, nil
-}
-
-func GetMatch(matchId string, summonerId string) (*lol.Match, *lol.Participant, error) {
-	if !online {
-		return nil, nil, errors.New("riot api not available")
-	}
-
-	game, err := Api.Riot.LoL.Match.Get(matchId)
+func (a *api) GetMatch(matchId string, summonerId string) (*lol.Match, *lol.Participant, error) {
+	game, err := a.client.Riot.LoL.Match.Get(matchId)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -216,62 +155,26 @@ func GetMatch(matchId string, summonerId string) (*lol.Match, *lol.Participant, 
 	return game, userData, nil
 }
 
-func NextTier(tier string) string {
-	switch strings.ToUpper(tier) {
-	case "IRON":
-		return "BRONZE"
-	case "BRONZE":
-		return "SILVER"
-	case "SILVER":
-		return "GOLD"
-	case "GOLD":
-		return "PLATINUM"
-	case "PLATINUM":
-		return "DIAMOND"
-	case "DIAMOND":
-		return "MASTER"
-	case "MASTER":
-		return "GRANDMASTER"
-	case "GRANDMASTER":
-		return "CHALLENGER"
-	default:
-		return ""
-	}
-}
-
-func ToQueueConfigId(queueType string) int {
-	switch queueType {
-	case QueueRankedFlex:
-		return QueueRankedFlexId
-	case QueueRankedSolo:
-		return QueueRankedSoloId
-	default:
-		return -1
-	}
-}
-
-func GetGameLevel(summonerId string, info *lol.GameInfo) (output.Level, error) {
-	if !online {
-		return output.All, errors.New("riot api not available")
-	}
+//TODO avoid/replace
+func (a *api) GetGameLevel(summonerId string, info *lol.GameInfo) (conf.VolumeLevel, error) {
 	if info == nil {
-		return output.All, errors.New("no info supplied")
+		return conf.All, errors.New("no info supplied")
 	}
 
 	if info.GameQueueConfigID != QueueRankedSoloId && info.GameQueueConfigID != QueueRankedFlexId {
-		return output.All, nil
+		return conf.All, nil
 	}
 
-	promos, err := GetPromos(summonerId)
+	promos, err := a.GetPromos(summonerId)
 	if err != nil {
-		return output.All, err
+		return conf.All, err
 	}
 
 	for _, promo := range promos {
 		if ToQueueConfigId(promo.Queue) == info.GameQueueConfigID {
-			return output.Promo, nil
+			return conf.Promo, nil
 		}
 	}
 
-	return output.Ranked, nil
+	return conf.Ranked, nil
 }

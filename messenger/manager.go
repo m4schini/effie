@@ -1,12 +1,12 @@
 package messenger
 
 import (
-	"effie/broker"
-	"effie/output"
-	"effie/riot"
+	"effie3/bot"
+	"effie3/broker"
+	"effie3/conf"
+	"effie3/riot"
 	"fmt"
 	"github.com/KnutZuidema/golio/riot/lol"
-	"github.com/bwmarrin/discordgo"
 	"golang.org/x/exp/slices"
 )
 
@@ -20,14 +20,14 @@ func isClosed(gameId int) bool {
 
 type Game struct {
 	State        *matchState
-	Level        output.Level
+	Level        conf.VolumeLevel
 	GameId       int
 	Participants []string
 	GameInfo     *lol.GameInfo
-	DMessage     *discordgo.Message
+	Message      bot.Message
 }
 
-func AddGame(discovered *broker.MatchUpdate, level output.Level) error {
+func AddGame(discovered *broker.MatchUpdate, level conf.VolumeLevel) error {
 	gameId := discovered.Game.GameID
 	summoner, err := riot.GetSummonerById(discovered.SummonerId)
 	if err != nil {
@@ -48,7 +48,7 @@ func AddGame(discovered *broker.MatchUpdate, level output.Level) error {
 		GameId:       gameId,
 		Participants: make([]string, 0),
 		GameInfo:     discovered.Game,
-		DMessage:     nil,
+		Message:      nil,
 	}
 
 	if !slices.Contains(game.Participants, summoner.Name) {
@@ -88,22 +88,22 @@ func SetState(gameId int, state State, info *broker.MatchUpdate, post *broker.Ma
 	game.State.SetState(state, post, game, game.Participants)
 }
 
-func SetDMessage(gameId int, message *discordgo.Message) {
+func SetDMessage(gameId int, message bot.Message) {
 	game, ok := games[gameId]
 	if !ok {
 		return
 	}
 
-	game.DMessage = message
+	game.Message = message
 }
 
-func GetDMessage(gameId int) *discordgo.Message {
+func GetDMessage(gameId int) bot.Message {
 	game, ok := games[gameId]
 	if !ok {
 		return nil
 	}
 
-	return game.DMessage
+	return game.Message
 }
 
 func GetMessageString(gameId int) string {

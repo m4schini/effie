@@ -1,11 +1,11 @@
 package broker
 
 import (
-	"effie/logger"
+	"effie3/logger"
 	"sync"
 )
 
-var log = logger.Get("broker").Sugar()
+var log = logger.Get("messages").Sugar()
 
 const (
 	chBufferSize = 128
@@ -35,6 +35,7 @@ func init() {
 			chachedHandlers, exists := handlers[message.topic]
 			handlersMutex.Unlock()
 			if !exists {
+				log.Debugw("topic has no handlers", "topic", message.topic)
 				continue
 			}
 

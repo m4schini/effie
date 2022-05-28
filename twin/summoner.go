@@ -2,9 +2,10 @@ package twin
 
 import (
 	"context"
-	"effie/broker"
-	"effie/logger"
-	"effie/riot"
+	"effie3/broker"
+	"effie3/cache"
+	"effie3/logger"
+	"effie3/riot"
 	"github.com/KnutZuidema/golio/riot/lol"
 	"time"
 )
@@ -37,6 +38,7 @@ func NewSummonerTwin(id string) *summoner {
 	s.inGameState.SetOnInGame(s.onGameUpdated)
 	s.inGameState.SetOnStopped(s.onGameStopped)
 
+	log.Debugw("created new summoner twin", "summonerId", id)
 	return s
 }
 
@@ -45,31 +47,34 @@ func (s *summoner) ID() string {
 }
 
 func (s *summoner) InGame() (bool, *lol.GameInfo) {
-	inGame, info, err := riot.IsPlaying(s.id)
+	info, err := riot.GetCurrentGame(s.id)
 	if err != nil {
-		log.Errorw("error while fetching summoner game status",
-			"error", err)
-		return false, nil
+		if err.Error() != "not found" {
+			log.Errorw("error while fetching summoner game status",
+				"error", err)
+			return false, nil
+		}
 	}
 
 	log.Debugw("fetched summoner game status",
 		"summonerId", s.id,
-		"inGameState", inGame)
-	return inGame, info
+		"inGameState", info != nil)
+	return info != nil, info
 }
 
 func (s *summoner) Refresh() error {
-	ig, info := s.InGame()
+	inGame, info := s.InGame()
 
-	if info != nil {
+	if inGame {
 		s.inGameState.OnFoundData(info)
 	} else {
 		s.inGameState.OnNoData()
 	}
 
 	log.Infow("Twin Updated",
+		"summonerName", cache.GetSummonerName(s.id),
 		"summonerId", s.id,
-		"inGameState", ig)
+		"inGame", inGame)
 	return nil
 }
 
@@ -114,7 +119,7 @@ func (s *summoner) onGameStarted(info *lol.GameInfo) {
 		break
 	}
 
-	leagues, err := riot.Api.Riot.LoL.League.ListBySummoner(s.id)
+	leagues, err := riot.GetLeagues(s.id)
 	if err != nil {
 		log.Error(err)
 		return
