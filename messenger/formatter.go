@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"effie3/broker"
+	"effie3/cache"
 	"effie3/conf"
 	"effie3/riot"
 	"effie3/util"
@@ -10,14 +11,6 @@ import (
 	"strings"
 	"time"
 )
-
-var promoCounter int64
-var gameCounter int64
-
-func init() {
-	promoCounter = 1
-	gameCounter = 1
-}
 
 func formatGameStart(level conf.VolumeLevel, info *lol.GameInfo, participants []string) string {
 	pString := strings.Join(participants, ", ")
@@ -36,7 +29,9 @@ func formatGameStart(level conf.VolumeLevel, info *lol.GameInfo, participants []
 			pString,
 			tributeTitle)
 	default:
-		gameCounter = gameCounter + 1
+		getCount, setCount := cache.GetHungerGamesCount()
+		count := getCount()
+		setCount(count + 1)
 
 		return fmt.Sprintf(
 			"**%s** volunteered as %s!\n"+
@@ -159,14 +154,20 @@ func GetPostMessage(info *broker.MatchPostData, participants []string, level con
 	if info.Summoner.Win {
 		switch level {
 		case conf.Promo:
-			promoCounter = promoCounter + 1
+			getCount, setCount := cache.GetPromoGamesCount()
+			count := getCount()
+			setCount(count + 1)
+
 			headline = fmt.Sprintf("**%s** %s __won__ the %d%s Promo Games!",
-				participantString, haveHas, promoCounter, util.GetNumberPostfix(int(promoCounter%10)))
+				participantString, haveHas, count, util.GetNumberPostfix(int(count%10)))
 			break
 		case conf.Ranked:
-			promoCounter = promoCounter + 1
+			getCount, setCount := cache.GetHungerGamesCount()
+			count := getCount()
+			setCount(count + 1)
+
 			headline = fmt.Sprintf("**%s** %s __won__ the %d%s Hunger Games!",
-				participantString, haveHas, gameCounter, util.GetNumberPostfix(int(gameCounter%10)))
+				participantString, haveHas, count, util.GetNumberPostfix(int(count%10)))
 			break
 		default:
 			headline = "**WIN!**"
@@ -175,14 +176,18 @@ func GetPostMessage(info *broker.MatchPostData, participants []string, level con
 	} else {
 		switch level {
 		case conf.Promo:
-			promoCounter = promoCounter + 1
+			getCount, setCount := cache.GetPromoGamesCount()
+			count := getCount()
+			setCount(count + 1)
 			headline = fmt.Sprintf("**%s** %s __lost__ the %d%s Promo Games!",
-				participantString, haveHas, promoCounter, util.GetNumberPostfix(int(promoCounter%10)))
+				participantString, haveHas, count, util.GetNumberPostfix(int(count%10)))
 			break
 		case conf.Ranked:
-			promoCounter = promoCounter + 1
+			getCount, setCount := cache.GetHungerGamesCount()
+			count := getCount()
+			setCount(count + 1)
 			headline = fmt.Sprintf("**%s** %s __lost__ the %d%s Hunger Games!",
-				participantString, haveHas, gameCounter, util.GetNumberPostfix(int(gameCounter%10)))
+				participantString, haveHas, count, util.GetNumberPostfix(int(count%10)))
 			break
 		default:
 			headline = "**LOSE!**"

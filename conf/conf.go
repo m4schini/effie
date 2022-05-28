@@ -12,7 +12,7 @@ const (
 	Promo  VolumeLevel = "promos"
 )
 
-var volumeLevel VolumeLevel
+var volumeLevel = Ranked
 
 func SetVolume(level VolumeLevel) {
 	log.Infow("changed volume level", "before", volumeLevel, "after", level)

@@ -12,21 +12,43 @@ const (
 	cacheExpiration = 24 * time.Hour
 )
 
-var src exstate.Cache
+var cache exstate.Cache
+var source exstate.Source
 
 var log = logger.Get("cache", "exstate").Sugar()
 
 func init() {
 	r, _ := er.New("", "", 0)
-	src = r
+	cache = r
+	source = r
+}
+
+func GetHungerGamesCount() (exstate.GetInt, exstate.Setter[int]) {
+	if source == nil {
+		return func() int {
+			return 0
+		}, func(v int) {}
+	}
+
+	return source.Int("count.ranked")
+}
+
+func GetPromoGamesCount() (exstate.GetInt, exstate.Setter[int]) {
+	if source == nil {
+		return func() int {
+			return 0
+		}, func(v int) {}
+	}
+
+	return source.Int("count.promo")
 }
 
 func GetSummonerId(name string) string {
-	if src == nil {
+	if cache == nil {
 		return ""
 	}
 
-	getId, _, err := src.New("cache.id."+name, cacheExpiration, makeIdRetriever(name))
+	getId, _, err := cache.New("cache.id."+name, cacheExpiration, makeIdRetriever(name))
 	if err != nil {
 		log.Error(err)
 		return ""
@@ -47,11 +69,11 @@ func GetSummonerId(name string) string {
 }
 
 func GetSummonerName(id string) string {
-	if src == nil {
+	if cache == nil {
 		return ""
 	}
 
-	getId, _, err := src.New("cache.id."+id, cacheExpiration, makeNameRetriever(id))
+	getId, _, err := cache.New("cache.id."+id, cacheExpiration, makeNameRetriever(id))
 	if err != nil {
 		log.Error(err)
 		return ""
