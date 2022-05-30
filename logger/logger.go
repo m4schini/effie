@@ -9,6 +9,11 @@ var logger *zap.Logger
 
 func init() {
 	defer func() {
+		if logger != nil {
+			logger = Get("effie")
+		}
+	}()
+	defer func() {
 		if logger == nil {
 			logger = zap.NewNop()
 		}

@@ -3,16 +3,16 @@ package messenger
 import (
 	"effie3/broker"
 	"effie3/cache"
-	"effie3/conf"
 	"effie3/riot"
 	"effie3/util"
+	"effie3/values/volume"
 	"fmt"
 	"github.com/KnutZuidema/golio/riot/lol"
 	"strings"
 	"time"
 )
 
-func formatGameStart(level conf.VolumeLevel, info *lol.GameInfo, participants []string) string {
+func formatGameStart(level volume.Level, info *lol.GameInfo, participants []string) string {
 	pString := strings.Join(participants, ", ")
 	tributeTitle := "tribute"
 	if len(participants) > 1 {
@@ -20,19 +20,15 @@ func formatGameStart(level conf.VolumeLevel, info *lol.GameInfo, participants []
 	}
 
 	switch level {
-	case conf.All:
+	case volume.All:
 		return fmt.Sprintf("**%s** started survival training!", pString)
-	case conf.Ranked:
+	case volume.Ranked:
 		return fmt.Sprintf(
 			"**%s** volunteered as %s!\n"+
 				"*Welcome, welcome! Happy Hunger Games! And may the odds be ever in your favor.*",
 			pString,
 			tributeTitle)
 	default:
-		getCount, setCount := cache.GetHungerGamesCount()
-		count := getCount()
-		setCount(count + 1)
-
 		return fmt.Sprintf(
 			"**%s** volunteered as %s!\n"+
 				"*Welcome, welcome! Happy Promo Games! And may the odds be ever in your favor.*",
@@ -42,15 +38,15 @@ func formatGameStart(level conf.VolumeLevel, info *lol.GameInfo, participants []
 	}
 }
 
-func GetStartedMessage(info *lol.GameInfo, participants []string, level conf.VolumeLevel) string {
+func GetStartedMessage(info *lol.GameInfo, participants []string, level volume.Level) string {
 	return formatGameStart(level, info, participants)
 }
 
-func GetLoadingMessage(info *lol.GameInfo, participants []string, level conf.VolumeLevel) string {
+func GetLoadingMessage(info *lol.GameInfo, participants []string, level volume.Level) string {
 	return formatGameStart(level, info, participants) + "\n\nLooking for sponsors..."
 }
 
-func GetActiveMessage(info *lol.GameInfo, participants []string, level conf.VolumeLevel) string {
+func GetActiveMessage(info *lol.GameInfo, participants []string, level volume.Level) string {
 	length := time.Since(time.UnixMilli(int64(info.GameStartTime)))
 
 	var queue string
@@ -95,7 +91,7 @@ func GetActiveMessage(info *lol.GameInfo, participants []string, level conf.Volu
 		fmt.Sprintf("*Length*: **%02d:%02d**\n", int(length.Minutes()), int(length.Seconds())%60) +
 		fmt.Sprintf("*Queue*: **%v**\n", queue)
 
-	if level == conf.Promo {
+	if level == volume.Promo {
 		msg = msg + fmt.Sprintf("*This Match is part of a promotion series!*\n")
 	} else {
 		msg = msg + "*This is not a promo game*"
@@ -104,7 +100,7 @@ func GetActiveMessage(info *lol.GameInfo, participants []string, level conf.Volu
 	return msg
 }
 
-func GetEndedMessage(info *lol.GameInfo, participants []string, level conf.VolumeLevel) string {
+func GetEndedMessage(info *lol.GameInfo, participants []string, level volume.Level) string {
 	go func() {
 		summoner, err := riot.GetSummonerByName(participants[0])
 		if err != nil {
@@ -129,7 +125,7 @@ func GetEndedMessage(info *lol.GameInfo, participants []string, level conf.Volum
 	return "Game has ended. Waiting for post game data..."
 }
 
-func GetPostMessage(info *broker.MatchPostData, participants []string, level conf.VolumeLevel) string {
+func GetPostMessage(info *broker.MatchPostData, participants []string, level volume.Level) string {
 	scoreboard := ""
 	for _, participant := range info.Match.Info.Participants {
 		if participant.Win == info.Summoner.Win {
@@ -153,18 +149,14 @@ func GetPostMessage(info *broker.MatchPostData, participants []string, level con
 	headline := ""
 	if info.Summoner.Win {
 		switch level {
-		case conf.Promo:
-			getCount, setCount := cache.GetPromoGamesCount()
-			count := getCount()
-			setCount(count + 1)
+		case volume.Promo:
+			count := nextPromoGames()
 
 			headline = fmt.Sprintf("**%s** %s __won__ the %d%s Promo Games!",
 				participantString, haveHas, count, util.GetNumberPostfix(int(count%10)))
 			break
-		case conf.Ranked:
-			getCount, setCount := cache.GetHungerGamesCount()
-			count := getCount()
-			setCount(count + 1)
+		case volume.Ranked:
+			count := nextHungerGames()
 
 			headline = fmt.Sprintf("**%s** %s __won__ the %d%s Hunger Games!",
 				participantString, haveHas, count, util.GetNumberPostfix(int(count%10)))
@@ -175,17 +167,13 @@ func GetPostMessage(info *broker.MatchPostData, participants []string, level con
 		}
 	} else {
 		switch level {
-		case conf.Promo:
-			getCount, setCount := cache.GetPromoGamesCount()
-			count := getCount()
-			setCount(count + 1)
+		case volume.Promo:
+			count := nextPromoGames()
 			headline = fmt.Sprintf("**%s** %s __lost__ the %d%s Promo Games!",
 				participantString, haveHas, count, util.GetNumberPostfix(int(count%10)))
 			break
-		case conf.Ranked:
-			getCount, setCount := cache.GetHungerGamesCount()
-			count := getCount()
-			setCount(count + 1)
+		case volume.Ranked:
+			count := nextHungerGames()
 			headline = fmt.Sprintf("**%s** %s __lost__ the %d%s Hunger Games!",
 				participantString, haveHas, count, util.GetNumberPostfix(int(count%10)))
 			break
@@ -197,4 +185,26 @@ func GetPostMessage(info *broker.MatchPostData, participants []string, level con
 	headline = headline + "\n"
 
 	return headline + scoreboard
+}
+
+func nextHungerGames() int {
+	getCount, setCount := cache.GetHungerGamesCount()
+	count := getCount()
+	if count < 0 {
+		count = 1
+	}
+
+	setCount(count + 1)
+	return count
+}
+
+func nextPromoGames() int {
+	getCount, setCount := cache.GetPromoGamesCount()
+	count := getCount()
+	if count < 0 {
+		count = 1
+	}
+
+	setCount(count + 1)
+	return count
 }

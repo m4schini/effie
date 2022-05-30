@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"effie3/bot"
-	"effie3/watch"
+	"effie3/values"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 )
@@ -21,7 +21,7 @@ var addCmd = &bot.Command{
 		}
 		summonerName := options[0].Value.(string)
 
-		if err := watch.AddName(summonerName); err == nil {
+		if err := values.Targets.AddName(summonerName); err == nil {
 			respond(fmt.Sprintf("watching %v with great interest", summonerName))
 		} else {
 			log.Error(err)

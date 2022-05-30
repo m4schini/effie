@@ -71,7 +71,7 @@ func (s *summoner) Refresh() error {
 		s.inGameState.OnNoData()
 	}
 
-	log.Infow("Twin Updated",
+	log.Infow("twin updated",
 		"summonerName", cache.GetSummonerName(s.id),
 		"summonerId", s.id,
 		"inGame", inGame)

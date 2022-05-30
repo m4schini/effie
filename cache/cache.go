@@ -5,6 +5,7 @@ import (
 	"effie3/riot"
 	"github.com/m4schini/exstate"
 	er "github.com/m4schini/exstate/redis"
+	"os"
 	"time"
 )
 
@@ -18,7 +19,19 @@ var source exstate.Source
 var log = logger.Get("cache", "exstate").Sugar()
 
 func init() {
-	r, _ := er.New("", "", 0)
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		log.Warn("REDIS_ADDR is missing")
+	}
+	pass := os.Getenv("REDIS_PASS")
+	if pass == "" {
+		log.Warn("REDIS_PASS is missing")
+	}
+
+	r, err := er.New(addr, pass, 0)
+	if err != nil {
+		log.Error(err)
+	}
 	cache = r
 	source = r
 }

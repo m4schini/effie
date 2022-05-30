@@ -3,8 +3,8 @@ package messenger
 import (
 	"effie3/bot"
 	"effie3/broker"
-	"effie3/conf"
 	"effie3/riot"
+	"effie3/values/volume"
 	"fmt"
 	"github.com/KnutZuidema/golio/riot/lol"
 	"golang.org/x/exp/slices"
@@ -20,14 +20,14 @@ func isClosed(gameId int) bool {
 
 type Game struct {
 	State        *matchState
-	Level        conf.VolumeLevel
+	Level        volume.Level
 	GameId       int
 	Participants []string
 	GameInfo     *lol.GameInfo
 	Message      bot.Message
 }
 
-func AddGame(discovered *broker.MatchUpdate, level conf.VolumeLevel) error {
+func AddGame(discovered *broker.MatchUpdate, level volume.Level) error {
 	gameId := discovered.Game.GameID
 	summoner, err := riot.GetSummonerById(discovered.SummonerId)
 	if err != nil {

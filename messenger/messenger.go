@@ -3,9 +3,9 @@ package messenger
 import (
 	"effie3/bot"
 	"effie3/broker"
-	"effie3/conf"
 	"effie3/logger"
 	"effie3/riot"
+	"effie3/values"
 	"time"
 )
 
@@ -41,7 +41,7 @@ func onMatchStart(channel bot.Api, channelId string) func(topic string, message 
 		gameId := msg.Game.GameID
 
 		level, _ := riot.GetGameLevel(msg.SummonerId, msg.Game)
-		if !conf.VolumeOk(level) {
+		if !values.Volume.Ok(level) {
 			log.Infow("game doesn't reach output level", "gameId", gameId, "summonerId", msg.SummonerId)
 			return
 		}

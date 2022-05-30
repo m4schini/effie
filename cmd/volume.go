@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"effie3/bot"
-	"effie3/conf"
+	"effie3/values"
+	"effie3/values/volume"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -21,17 +22,17 @@ var volumeCmd = &bot.Command{
 
 		switch level {
 		case "all":
-			conf.SetVolume(conf.All)
+			values.Volume.Set(volume.All)
 			break
 		case "ranked":
-			conf.SetVolume(conf.Ranked)
+			values.Volume.Set(volume.Ranked)
 			break
 		case "promos":
-			conf.SetVolume(conf.Promo)
+			values.Volume.Set(volume.Promo)
 			break
 		}
 
-		respond("Volume set to " + level)
+		respond("Get set to " + level)
 	},
 }
 
@@ -43,15 +44,15 @@ func init() {
 		true,
 		&discordgo.ApplicationCommandOptionChoice{
 			Name:  "all",
-			Value: conf.All,
+			Value: volume.All,
 		},
 		&discordgo.ApplicationCommandOptionChoice{
 			Name:  "ranked + promos",
-			Value: conf.Ranked,
+			Value: volume.Ranked,
 		},
 		&discordgo.ApplicationCommandOptionChoice{
 			Name:  "promos only",
-			Value: conf.Promo,
+			Value: volume.Promo,
 		},
 	)
 	if err != nil {

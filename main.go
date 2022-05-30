@@ -12,7 +12,7 @@ import (
 	"effie3/messenger"
 	"effie3/riot"
 	"effie3/tracker"
-	"effie3/watch"
+	"effie3/values"
 	"os"
 	"os/signal"
 	"strings"
@@ -27,6 +27,7 @@ var botChannel = make(chan bot.Api)
 var log = logger.Get("app").Sugar()
 
 func main() {
+	defer logger.Sync()
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -50,13 +51,14 @@ func main() {
 			sc <- os.Kill
 			return
 		}
+
 		messenger.Start(<-botChannel, os.Getenv("DISCORD_CHANNEL"))
 		wg.Done()
 	}()
 
 	go func() {
 		wg.Wait()
-		err := tracker.Start(ctx, watch.List)
+		err := tracker.Start(ctx, values.Targets.List)
 		if err != nil {
 			log.Error(err)
 			sc <- os.Kill
@@ -73,7 +75,7 @@ func main() {
 			log.Errorw("error while adding predefined summoner", "err", err, "summonerName", s)
 			continue
 		}
-		err = watch.Add(info.ID)
+		err = values.Targets.Add(info.ID)
 		if err != nil {
 			log.Warn(err)
 		}

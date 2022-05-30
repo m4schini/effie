@@ -1,9 +1,8 @@
 package riot
 
 import (
-	"effie3/conf"
 	"effie3/logger"
-	"effie3/util"
+	"effie3/values/volume"
 	"errors"
 	"github.com/KnutZuidema/golio"
 	golioApi "github.com/KnutZuidema/golio/api"
@@ -30,7 +29,7 @@ type Api interface {
 	GetLeagues(summonerId string) ([]*lol.LeagueItem, error)
 	GetPromos(summonerId string) ([]*PromoSeries, error)
 	GetMatch(matchId string, summonerId string) (*lol.Match, *lol.Participant, error)
-	GetGameLevel(summonerId string, info *lol.GameInfo) (conf.VolumeLevel, error)
+	GetGameLevel(summonerId string, info *lol.GameInfo) (volume.Level, error)
 }
 
 type api struct {
@@ -130,7 +129,7 @@ func (a *api) getTier(summonerId, queueType string) (*string, *string, error) {
 	for _, league := range leagues {
 		if league.QueueType == queueType {
 
-			next := util.NextTier(league.Tier)
+			next := NextTier(league.Tier)
 			return &league.Tier, &next, nil
 		}
 	}
@@ -155,26 +154,26 @@ func (a *api) GetMatch(matchId string, summonerId string) (*lol.Match, *lol.Part
 	return game, userData, nil
 }
 
-//TODO avoid/replace
-func (a *api) GetGameLevel(summonerId string, info *lol.GameInfo) (conf.VolumeLevel, error) {
+// GetGameLevel TODO avoid/replace
+func (a *api) GetGameLevel(summonerId string, info *lol.GameInfo) (volume.Level, error) {
 	if info == nil {
-		return conf.All, errors.New("no info supplied")
+		return volume.All, errors.New("no info supplied")
 	}
 
 	if info.GameQueueConfigID != QueueRankedSoloId && info.GameQueueConfigID != QueueRankedFlexId {
-		return conf.All, nil
+		return volume.All, nil
 	}
 
 	promos, err := a.GetPromos(summonerId)
 	if err != nil {
-		return conf.All, err
+		return volume.All, err
 	}
 
 	for _, promo := range promos {
 		if ToQueueConfigId(promo.Queue) == info.GameQueueConfigID {
-			return conf.Promo, nil
+			return volume.Promo, nil
 		}
 	}
 
-	return conf.Ranked, nil
+	return volume.Ranked, nil
 }

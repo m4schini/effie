@@ -3,9 +3,9 @@ package cmd
 import (
 	"effie3/bot"
 	"effie3/riot"
+	"effie3/values"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"time"
 )
 
 var blockCmd = &bot.Command{
@@ -25,7 +25,7 @@ var blockCmd = &bot.Command{
 			return
 		}
 
-		time.Sleep(time.Second)
+		values.Forbidden.AddName(summonerName)
 		respond(fmt.Sprintf("blocked %v", summonerInfo.Name))
 	},
 }

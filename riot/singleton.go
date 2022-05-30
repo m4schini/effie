@@ -1,7 +1,7 @@
 package riot
 
 import (
-	"effie3/conf"
+	"effie3/values/volume"
 	"errors"
 	"github.com/KnutZuidema/golio/riot/lol"
 	"github.com/KnutZuidema/golio/static"
@@ -79,9 +79,9 @@ func GetQueueInfo(queueId int) (static.Queue, error) {
 	return apiSingleton.client.Static.GetQueue(queueId)
 }
 
-func GetGameLevel(summonerId string, info *lol.GameInfo) (conf.VolumeLevel, error) {
+func GetGameLevel(summonerId string, info *lol.GameInfo) (volume.Level, error) {
 	if !apiHealthy() {
-		return conf.All, errors.New("api client not available")
+		return volume.All, errors.New("api client not available")
 	}
 
 	return apiSingleton.GetGameLevel(summonerId, info)

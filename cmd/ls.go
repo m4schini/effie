@@ -3,7 +3,7 @@ package cmd
 import (
 	"effie3/bot"
 	"effie3/cache"
-	"effie3/watch"
+	"effie3/values"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 )
@@ -14,7 +14,7 @@ var lsCmd = &bot.Command{
 	LoadingText: "looking for the tribute list...",
 	Run: func(s *discordgo.Session, i *discordgo.Interaction, respond bot.InteractionRespondFunc) {
 		var response string
-		for _, id := range watch.List() {
+		for _, id := range values.Targets.List() {
 			response = response + fmt.Sprintf("%v\n", cache.GetSummonerName(id))
 		}
 

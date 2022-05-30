@@ -1,13 +1,28 @@
 package state
 
-import "github.com/m4schini/exstate"
+import (
+	"effie3/logger"
+	"github.com/m4schini/exstate"
+	"os"
+)
 import exsr "github.com/m4schini/exstate/redis"
 
 var source exstate.Source
 
+var log = logger.Get("state", "deprecated")
+
 func init() {
 	var err error
-	source, err = exsr.New("", "", 0)
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		log.Warn("REDIS_ADDR is missing")
+	}
+	pass := os.Getenv("REDIS_PASS")
+	if pass == "" {
+		log.Warn("REDIS_PASS is missing")
+	}
+
+	source, err = exsr.New(addr, pass, 0)
 	if err != nil {
 		panic(err)
 	}

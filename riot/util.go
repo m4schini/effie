@@ -1,5 +1,7 @@
 package riot
 
+import "strings"
+
 const (
 	envNameRiotApiKey    = "RIOT_API_KEY"
 	envNameRiotApiRegion = "RIOT_API_REGION"
@@ -18,5 +20,28 @@ func ToQueueConfigId(queueType string) int {
 		return QueueRankedSoloId
 	default:
 		return -1
+	}
+}
+
+func NextTier(tier string) string {
+	switch strings.ToUpper(tier) {
+	case "IRON":
+		return "BRONZE"
+	case "BRONZE":
+		return "SILVER"
+	case "SILVER":
+		return "GOLD"
+	case "GOLD":
+		return "PLATINUM"
+	case "PLATINUM":
+		return "DIAMOND"
+	case "DIAMOND":
+		return "MASTER"
+	case "MASTER":
+		return "GRANDMASTER"
+	case "GRANDMASTER":
+		return "CHALLENGER"
+	default:
+		return ""
 	}
 }

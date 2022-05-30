@@ -2,7 +2,7 @@ package messenger
 
 import (
 	"effie3/broker"
-	"effie3/conf"
+	"effie3/values/volume"
 	"github.com/KnutZuidema/golio/riot/lol"
 )
 
@@ -18,7 +18,7 @@ const (
 
 type matchState struct {
 	state        State
-	level        conf.VolumeLevel
+	level        volume.Level
 	participants []string
 	info         *lol.GameInfo
 	post         *broker.MatchPostData

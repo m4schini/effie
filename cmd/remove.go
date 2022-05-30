@@ -3,7 +3,7 @@ package cmd
 import (
 	"effie3/bot"
 	"effie3/riot"
-	"effie3/watch"
+	"effie3/values"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -28,7 +28,7 @@ var removeCmd = &bot.Command{
 		}
 		summonerId := summonerInfo.ID
 
-		watch.Remove(summonerId)
+		values.Targets.Remove(summonerId)
 		respond("list interest in " + summonerName)
 	},
 }
