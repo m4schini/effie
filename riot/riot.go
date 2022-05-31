@@ -7,6 +7,7 @@ import (
 	"github.com/KnutZuidema/golio"
 	golioApi "github.com/KnutZuidema/golio/api"
 	"github.com/KnutZuidema/golio/riot/lol"
+	golioStatic "github.com/KnutZuidema/golio/static"
 	"go.uber.org/zap"
 )
 
@@ -30,6 +31,8 @@ type Api interface {
 	GetPromos(summonerId string) ([]*PromoSeries, error)
 	GetMatch(matchId string, summonerId string) (*lol.Match, *lol.Participant, error)
 	GetGameLevel(summonerId string, info *lol.GameInfo) (volume.Level, error)
+
+	Static() *golioStatic.Client
 }
 
 type api struct {
@@ -45,6 +48,10 @@ func NewApi(region, apiKey string) (*api, error) {
 
 	a.logger = log.Named(region)
 	return a, nil
+}
+
+func (a *api) Static() *golioStatic.Client {
+	return a.client.Static
 }
 
 func (a *api) GetSummonerByName(summonerName string) (*lol.Summoner, error) {

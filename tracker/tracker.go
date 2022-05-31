@@ -15,12 +15,12 @@ var log = logger.Get("tracker").Sugar()
 
 var twins = make(map[string]twin.SummonerTwin)
 
-func Start(ctx context.Context, getList func() []string) error {
+func Start(ctx context.Context, getTargets func() []string) error {
 	for {
 		done := make(chan struct{}, 0)
 
 		go func() {
-			summonerIds := getList()
+			summonerIds := getTargets()
 
 			log.Infow("starting scan run", "count", len(summonerIds))
 			for _, id := range summonerIds {

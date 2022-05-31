@@ -1,11 +1,10 @@
 package cache
 
 import (
+	"effie3/dependency"
 	"effie3/logger"
 	"effie3/riot"
 	"github.com/m4schini/exstate"
-	er "github.com/m4schini/exstate/redis"
-	"os"
 	"time"
 )
 
@@ -13,28 +12,10 @@ const (
 	cacheExpiration = 24 * time.Hour
 )
 
-var cache exstate.Cache
-var source exstate.Source
+var cache = dependency.ECache()
+var source = dependency.ESource()
 
 var log = logger.Get("cache", "exstate").Sugar()
-
-func init() {
-	addr := os.Getenv("REDIS_ADDR")
-	if addr == "" {
-		log.Warn("REDIS_ADDR is missing")
-	}
-	pass := os.Getenv("REDIS_PASS")
-	if pass == "" {
-		log.Warn("REDIS_PASS is missing")
-	}
-
-	r, err := er.New(addr, pass, 0)
-	if err != nil {
-		log.Error(err)
-	}
-	cache = r
-	source = r
-}
 
 func GetHungerGamesCount() (exstate.GetInt, exstate.Setter[int]) {
 	if source == nil {

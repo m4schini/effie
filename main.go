@@ -42,12 +42,9 @@ func main() {
 		wg.Done()
 	}()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	go func() {
 		if os.Getenv("DISCORD_CHANNEL") == "" {
-			log.Warnw("DISCORD_CHANNEL is empty")
+			log.Error("DISCORD_CHANNEL is empty")
 			sc <- os.Kill
 			return
 		}
@@ -55,6 +52,10 @@ func main() {
 		messenger.Start(<-botChannel, os.Getenv("DISCORD_CHANNEL"))
 		wg.Done()
 	}()
+
+	// tracker context
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	go func() {
 		wg.Wait()

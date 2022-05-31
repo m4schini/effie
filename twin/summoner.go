@@ -25,18 +25,19 @@ type SummonerTwin interface {
 
 type summoner struct {
 	id          string
-	inGameState GameStateMachine
+	inGameState InGameStatus
 	IsInGame    bool
 }
 
 func NewSummonerTwin(id string) *summoner {
 	s := new(summoner)
 	s.id = id
-	s.inGameState = NewState(id)
-
-	s.inGameState.SetOnStarted(s.onGameStarted)
-	s.inGameState.SetOnInGame(s.onGameUpdated)
-	s.inGameState.SetOnStopped(s.onGameStopped)
+	s.inGameState = NewInGameStatus(
+		func(info *lol.GameInfo) {},
+		s.onGameStarted,
+		s.onGameUpdated,
+		s.onGameStopped,
+	)
 
 	log.Debugw("created new summoner twin", "summonerId", id)
 	return s
@@ -65,11 +66,8 @@ func (s *summoner) InGame() (bool, *lol.GameInfo) {
 func (s *summoner) Refresh() error {
 	inGame, info := s.InGame()
 
-	if inGame {
-		s.inGameState.OnFoundData(info)
-	} else {
-		s.inGameState.OnNoData()
-	}
+	//TODO info = nil if not in game?
+	s.inGameState(info)
 
 	log.Infow("twin updated",
 		"summonerName", cache.GetSummonerName(s.id),

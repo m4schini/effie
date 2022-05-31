@@ -1,31 +1,14 @@
 package riot
 
 import (
+	"effie3/dependency"
 	"effie3/values/volume"
 	"errors"
 	"github.com/KnutZuidema/golio/riot/lol"
 	"github.com/KnutZuidema/golio/static"
-	"os"
 )
 
-var apiSingleton *api
-
-func init() {
-	if os.Getenv(envNameRiotApiRegion) == "" {
-		log.Warn(envNameRiotApiRegion + " is missing")
-		return
-	}
-	if os.Getenv(envNameRiotApiKey) == "" {
-		log.Warn(envNameRiotApiKey + " is missing")
-		return
-	}
-
-	var err error
-	apiSingleton, err = NewApi(os.Getenv(envNameRiotApiRegion), os.Getenv(envNameRiotApiKey))
-	if err != nil {
-		log.Warnw("riot api connection could not be established")
-	}
-}
+var apiSingleton = dependency.RiotApi()
 
 func apiHealthy() bool {
 	return apiSingleton != nil
@@ -76,7 +59,7 @@ func GetQueueInfo(queueId int) (static.Queue, error) {
 		return static.Queue{}, errors.New("api client not available")
 	}
 
-	return apiSingleton.client.Static.GetQueue(queueId)
+	return apiSingleton.Static().GetQueue(queueId)
 }
 
 func GetGameLevel(summonerId string, info *lol.GameInfo) (volume.Level, error) {
